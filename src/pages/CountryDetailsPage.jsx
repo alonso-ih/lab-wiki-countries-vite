@@ -4,15 +4,22 @@ import { Link, useParams } from "react-router-dom";
 
 function CountryDetailsPage() {
   const [country, setCountry] = useState(null);
+  const [countries, setCountries] = useState([]);
   const { countryId } = useParams();
 
   useEffect(() => {
     setCountry(null);
 
-    axios
-      .get(`https://ih-countries-api.herokuapp.com/countries/${countryId}`)
-      .then((response) => {
-        setCountry(response.data);
+    Promise.all([
+      axios.get(`https://ih-countries-api.herokuapp.com/countries/${countryId}`),
+      axios.get("https://ih-countries-api.herokuapp.com/countries"),
+    ])
+      .then(([countryResponse, countriesResponse]) => {
+        setCountry(countryResponse.data);
+
+        if (Array.isArray(countriesResponse.data)) {
+          setCountries(countriesResponse.data);
+        }
       })
       .catch((error) => {
         console.log(error);
@@ -50,11 +57,20 @@ function CountryDetailsPage() {
             <td>
               <ul>
                 {country.borders &&
-                  country.borders.map((border) => (
-                    <li key={border}>
-                      <Link to={`/${border}`}>{border}</Link>
-                    </li>
-                  ))}
+                  country.borders.map((border) => {
+                    const borderCountry = countries.find(
+                      (country) => country.alpha3Code === border
+                    );
+                    const borderName = borderCountry
+                      ? borderCountry.name.common
+                      : border;
+
+                    return (
+                      <li key={border}>
+                        <Link to={`/${border}`}>{borderName}</Link>
+                      </li>
+                    );
+                  })}
               </ul>
             </td>
           </tr>
